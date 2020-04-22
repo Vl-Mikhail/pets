@@ -1,9 +1,13 @@
 {
   "name": "ruvod",
   "version": "1.0.0",
-  "license": "no license",
+  "license": "UNLICENSED",
   "private": true,
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "start:server-dev": "yarn --cwd packages/server/ start:dev",
+    "start:web-dev": "yarn --cwd packages/web/ dev"
+  }
 }
