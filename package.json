@@ -1,0 +1,9 @@
+{
+  "name": "ruvod",
+  "version": "1.0.0",
+  "license": "no license",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}
