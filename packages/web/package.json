@@ -4,20 +4,20 @@
   "private": true,
   "license": "UNLICENSED",
   "dependencies": {
-    "@material-ui/core": "latest",
-    "clsx": "latest",
-    "next": "latest",
-    "prop-types": "latest",
-    "react": "latest",
-    "react-dom": "latest",
     "@apollo/react-hooks": "3.1.5",
     "@apollo/react-ssr": "3.1.5",
+    "@material-ui/core": "latest",
     "apollo-cache-inmemory": "1.6.5",
     "apollo-client": "2.6.8",
     "apollo-link-http": "1.5.17",
+    "clsx": "latest",
     "graphql": "^15.0.0",
     "graphql-tag": "2.10.3",
-    "isomorphic-unfetch": "^3.0.0"
+    "isomorphic-unfetch": "^3.0.0",
+    "next": "latest",
+    "prop-types": "latest",
+    "react": "latest",
+    "react-dom": "latest"
   },
   "devDependencies": {
     "babel-plugin-graphql-tag": "^2.5.0"
