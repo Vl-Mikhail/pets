@@ -1,0 +1,33 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input CreateUserInput {
+  name: String!
+  email: Email!
+}
+
+"""Email custom scalar type"""
+scalar Email
+
+type Mutation {
+  createUser(input: CreateUserInput!): User!
+  updateUser(input: CreateUserInput!, id: ID!): User!
+  deleteUser(id: ID!): User!
+}
+
+type Query {
+  user(id: ID!): User!
+  users(skip: Int = 0, take: Int = 10): [User!]
+}
+
+type Subscription {
+  userAdded: User!
+}
+
+type User {
+  id: ID!
+  name: String!
+  age: Float!
+  email: Email!
+}
