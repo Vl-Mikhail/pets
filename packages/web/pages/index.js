@@ -8,6 +8,7 @@ import { NetworkStatus } from "apollo-client";
 import ProTip from "../src/ProTip";
 import Copyright from "../src/Copyright";
 import { withApollo } from "../lib/apollo";
+import ErrorMessage from "../src/ErrorMessage";
 
 const useStyles = makeStyles((theme) => ({
   copyright: {
@@ -17,7 +18,7 @@ const useStyles = makeStyles((theme) => ({
 
 export const GET_USERS = gql`
   query Users($take: Int!, $skip: Int!) {
-    users(first: $first, skip: $skip) {
+    users(take: $take, skip: $skip) {
       id
       name
       email
@@ -27,23 +28,23 @@ export const GET_USERS = gql`
 
 const UPDATE_USERS = gql`
   mutation UpdatePost($id: ID!, $name: String!, $email: String!) {
-    updateUser(id: $id, input: {name: $name, email: $email}) {
+    updateUser(id: $id, input: { name: $name, email: $email }) {
       id
       name
       email
     }
   }
-`
+`;
 
 const CREATE_USER = gql`
-  mutation CreateUser($name: String!, $email: String!) {
-    createUser(name: $name, email: $email) {
+  mutation CreateUser($name: String!, $email: Email!) {
+    createUser(input: { name: $name, email: $email }) {
       id
       name
       email
     }
   }
-`
+`;
 
 const DELETE_USER = gql`
   mutation DeleteUser($id: ID!) {
@@ -53,7 +54,7 @@ const DELETE_USER = gql`
       email
     }
   }
-`
+`;
 
 export const usersQueryVars = {
   skip: 0,
@@ -63,74 +64,52 @@ export const usersQueryVars = {
 const IndexPage = () => {
   const classes = useStyles();
 
-  const { loading, error, data, fetchMore, networkStatus } = useQuery(
-    GET_USERS,
-    {
-      variables: usersQueryVars,
-      notifyOnNetworkStatusChange: true,
-    }
-  );
-  const [updateUser] = useMutation(UPDATE_USERS)
-  const [createUser] = useMutation(CREATE_USER)
-  const [deleteUser] = useMutation(DELETE_USER)
+  const { loading, error, data, fetchMore } = useQuery(GET_USERS, {
+    variables: usersQueryVars,
+    notifyOnNetworkStatusChange: true,
+  });
 
-  const udateUser = () => {
-    updateUser({
-      variables: {
-        id,
-        votes: votes + 1,
-      },
-      optimisticResponse: {
-        __typename: 'Mutation',
-        updatePost: {
-          __typename: 'User',
-          id,
-          votes: votes + 1,
-        },
-      },
-    })
-  }
+  const [createUser] = useMutation(CREATE_USER);
+  const [updateUser] = useMutation(UPDATE_USERS);
+  const [deleteUser] = useMutation(DELETE_USER);
 
-  createUser({
-    variables: { name, email },
-    update: (proxy, { data: { createUser } }) => {
-      const data = proxy.readQuery({
-        query: GET_USERS,
-        variables: usersQueryVars,
-      })
-      // Update the cache with the new post at the top of the
-      proxy.writeQuery({
-        query: GET_USERS,
-        data: {
-          ...data,
-          users: [createUser, ...data.users],
-        },
-        variables: usersQueryVars,
-      })
-    },
-  })
+  // const updateUser = () => {
+  //   updateUser({
+  //     variables: {
+  //       id,
+  //       votes: votes + 1,
+  //     },
+  //     optimisticResponse: {
+  //       __typename: 'Mutation',
+  //       updatePost: {
+  //         __typename: 'User',
+  //         id,
+  //         votes: votes + 1,
+  //       },
+  //     },
+  //   })
+  // }
 
-  const loadingMorePosts = networkStatus === NetworkStatus.fetchMore;
-
-  const loadMoreUsers = () => {
-    fetchMore({
-      variables: {
-        skip: users.length,
-      },
-      updateQuery: (previousResult, { fetchMoreResult }) => {
-        if (!fetchMoreResult) {
-          return previousResult;
-        }
-        return Object.assign({}, previousResult, {
-          // Append the new posts results to the old one
-          users: [...previousResult.users, ...fetchMoreResult.users],
-        });
-      },
-    });
-  };
+  // const loadingMorePosts = networkStatus === NetworkStatus.fetchMore;
+  // const loadMoreUsers = () => {
+  //   fetchMore({
+  //     variables: {
+  //       skip: users.length,
+  //     },
+  //     updateQuery: (previousResult, { fetchMoreResult }) => {
+  //       if (!fetchMoreResult) {
+  //         return previousResult;
+  //       }
+  //       return Object.assign({}, previousResult, {
+  //         // Append the new posts results to the old one
+  //         users: [...previousResult.users, ...fetchMoreResult.users],
+  //       });
+  //     },
+  //   });
+  // };
 
   if (error) return <ErrorMessage message="Error loading posts." />;
-  if (loading && !loadingMorePosts) return <div>Loading</div>;
+  if (loading) return <div>Loading</div>;
 
   const users = data?.users;
 
@@ -145,10 +124,21 @@ const IndexPage = () => {
       <MaterialTable
         columns={[
           { title: "Имя", field: "name" },
-          { title: "Почта", field: "email.name" },
+          { title: "Почта", field: "email" },
         ]}
         data={users}
+        options={{
+          search: false,
+        }}
         title="Список пользователей"
+        editable={{
+          onRowAdd: async (variables) => {
+            await createUser({ variables });
+          },
+          onRowDelete: async (row) => {
+            await deleteUser({ variables: { id: row.id } });
+          },
+        }}
       />
       <Copyright className={classes.copyright} />
     </Container>
