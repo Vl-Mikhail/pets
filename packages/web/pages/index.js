@@ -3,7 +3,7 @@ import { Container, Typography, Box } from "@material-ui/core";
 import MaterialTable from "material-table";
 import gql from "graphql-tag";
 import { useQuery, useMutation } from "@apollo/react-hooks";
-import { NetworkStatus } from "apollo-client";
+import { withRouter } from "next/router";
 
 import ProTip from "../src/ProTip";
 import Copyright from "../src/Copyright";
@@ -17,7 +17,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 export const GET_USERS = gql`
-  query Users($take: Int!, $skip: Int!) {
+  query Users($take: Int, $skip: Int) {
     users(take: $take, skip: $skip) {
       id
       name
@@ -56,16 +56,14 @@ const DELETE_USER = gql`
   }
 `;
 
-export const usersQueryVars = {
-  skip: 0,
-  take: 10,
-};
+function handleRowClick(e, id, router) {
+  router.push({ pathname: "/[id]", query: { id } }, `/${id}`);
+}
 
-const IndexPage = () => {
+const IndexPage = ({ router }) => {
   const classes = useStyles();
 
   const { loading, error, data, fetchMore } = useQuery(GET_USERS, {
-    variables: usersQueryVars,
     notifyOnNetworkStatusChange: true,
   });
 
@@ -90,23 +88,21 @@ const IndexPage = () => {
   //   })
   // }
 
-  // const loadingMorePosts = networkStatus === NetworkStatus.fetchMore;
-  // const loadMoreUsers = () => {
-  //   fetchMore({
-  //     variables: {
-  //       skip: users.length,
-  //     },
-  //     updateQuery: (previousResult, { fetchMoreResult }) => {
-  //       if (!fetchMoreResult) {
-  //         return previousResult;
-  //       }
-  //       return Object.assign({}, previousResult, {
-  //         // Append the new posts results to the old one
-  //         users: [...previousResult.users, ...fetchMoreResult.users],
-  //       });
-  //     },
-  //   });
-  // };
+  const loadMoreUsers = (page) => {
+    fetchMore({
+      variables: {
+        skip: page * 10,
+      },
+      updateQuery: (previousResult, { fetchMoreResult }) => {
+        if (!fetchMoreResult) {
+          return previousResult;
+        }
+        return Object.assign({}, previousResult, {
+          users: [...previousResult.users, ...fetchMoreResult.users],
+        });
+      },
+    });
+  };
 
   if (error) return <ErrorMessage message="Error loading posts." />;
   if (loading) return <div>Loading</div>;
@@ -129,7 +125,10 @@ const IndexPage = () => {
         data={users}
         options={{
           search: false,
+          pageSizeOptions: [5],
+          pageSize: 5
         }}
+        onChangePage={loadMoreUsers}
         title="Список пользователей"
         editable={{
           onRowAdd: async (variables) => {
@@ -139,10 +138,13 @@ const IndexPage = () => {
             await deleteUser({ variables: { id: row.id } });
           },
         }}
+        onRowClick={(event, rowData) =>
+          handleRowClick(event, rowData.id, router)
+        }
       />
       <Copyright className={classes.copyright} />
     </Container>
   );
 };
 
-export default withApollo({ ssr: true })(IndexPage);
+export default withApollo({ ssr: true })(withRouter(IndexPage));

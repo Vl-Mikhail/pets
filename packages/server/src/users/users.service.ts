@@ -15,6 +15,9 @@ export class UsersService {
 
   async findAll(usersArgs: UsersArgs): Promise<User[]> {
     const { skip, take } = usersArgs;
+    const documentCount = await this.userModel.countDocuments({});
+    console.log( "Number of users:", documentCount );
+
     return this.userModel.find().skip(skip).limit(take).exec();
   }
 
