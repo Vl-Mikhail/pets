@@ -3,13 +3,13 @@ import { Container, Typography, Box } from "@material-ui/core";
 import gql from "graphql-tag";
 import { useQuery } from "@apollo/react-hooks";
 import Router, { withRouter } from "next/router";
+import Paper from "@material-ui/core/Paper";
+import Grid from "@material-ui/core/Grid";
+import Button from "@material-ui/core/Button";
 
 import Copyright from "../../src/Copyright";
 import { withApollo } from "../../lib/apollo";
 import ErrorMessage from "../../src/ErrorMessage";
-import Paper from "@material-ui/core/Paper";
-import Grid from "@material-ui/core/Grid";
-import Button from "@material-ui/core/Button";
 
 const useStyles = makeStyles((theme) => ({
   copyright: {
@@ -34,7 +34,7 @@ const UserPage = ({ router }) => {
   const classes = useStyles();
   const id = router?.query?.id;
 
-  const { loading, error, data, fetchMore } = useQuery(GET_USER, {
+  const { loading, error, data } = useQuery(GET_USER, {
     variables: { id },
   });
 

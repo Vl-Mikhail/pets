@@ -13,12 +13,19 @@ export class UsersService {
     return createdUser.save();
   }
 
+  async update(id: string, createUser: CreateUserInput): Promise<User> {
+    return this.userModel
+      .findByIdAndUpdate(id, createUser, { new: true })
+      .exec();
+  }
+
   async findAll(usersArgs: UsersArgs): Promise<User[]> {
     const { skip, take } = usersArgs;
-    const documentCount = await this.userModel.countDocuments({});
-    console.log( "Number of users:", documentCount );
-
     return this.userModel.find().skip(skip).limit(take).exec();
+  }
+
+  async countUsers(): Promise<number> {
+    return this.userModel.countDocuments({});
   }
 
   async findOneById(id: string): Promise<User> {

@@ -11,8 +11,5 @@ export class User extends Document {
   name: string;
 
   @Field()
-  age: number;
-
-  @Field()
   email: Email;
 }

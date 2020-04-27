@@ -19,6 +19,7 @@ type Mutation {
 type Query {
   user(id: ID!): User!
   users(skip: Int = 0, take: Int = 5): [User!]
+  _usersMeta: Int
 }
 
 type Subscription {
@@ -28,6 +29,5 @@ type Subscription {
 type User {
   id: ID!
   name: String!
-  age: Float!
   email: Email!
 }

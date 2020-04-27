@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import { Container, Typography, Box } from "@material-ui/core";
 import MaterialTable from "material-table";
@@ -23,11 +24,12 @@ export const GET_USERS = gql`
       name
       email
     }
+    _usersMeta
   }
 `;
 
 const UPDATE_USERS = gql`
-  mutation UpdatePost($id: ID!, $name: String!, $email: String!) {
+  mutation UpdatePost($id: ID!, $name: String!, $email: Email!) {
     updateUser(id: $id, input: { name: $name, email: $email }) {
       id
       name
@@ -56,6 +58,16 @@ const DELETE_USER = gql`
   }
 `;
 
+export const USERS_SUBSCRIPTION = gql`
+  subscription onUserAdded {
+    userAdded {
+      id
+      name
+      email
+    }
+  }
+`;
+
 function handleRowClick(e, id, router) {
   router.push({ pathname: "/[id]", query: { id } }, `/${id}`);
 }
@@ -63,51 +75,79 @@ function handleRowClick(e, id, router) {
 const IndexPage = ({ router }) => {
   const classes = useStyles();
 
-  const { loading, error, data, fetchMore } = useQuery(GET_USERS, {
-    notifyOnNetworkStatusChange: true,
-  });
+  const {
+    loading,
+    error,
+    data,
+    fetchMore,
+    subscribeToMore,
+  } = useQuery(GET_USERS, { fetchPolicy: "network-only" });
+  const [page, setPage] = useState(0);
 
   const [createUser] = useMutation(CREATE_USER);
   const [updateUser] = useMutation(UPDATE_USERS);
-  const [deleteUser] = useMutation(DELETE_USER);
+  const [deleteUser] = useMutation(DELETE_USER, {
+    update: (cache, { data: { deleteUser } }) => {
+      const { users, _usersMeta } = cache.readQuery({ query: GET_USERS });
 
-  // const updateUser = () => {
-  //   updateUser({
-  //     variables: {
-  //       id,
-  //       votes: votes + 1,
-  //     },
-  //     optimisticResponse: {
-  //       __typename: 'Mutation',
-  //       updatePost: {
-  //         __typename: 'User',
-  //         id,
-  //         votes: votes + 1,
-  //       },
-  //     },
-  //   })
-  // }
+      cache.writeQuery({
+        query: GET_USERS,
+        data: {
+          users: users.filter((e) => e.id !== deleteUser.id),
+          _usersMeta: _usersMeta - 1,
+        },
+      });
+    },
+  });
 
-  const loadMoreUsers = (page) => {
-    fetchMore({
+  useEffect(() => {
+    subscribeToMore({
+      document: USERS_SUBSCRIPTION,
+      updateQuery: (prev, { subscriptionData }) => {
+        if (!subscriptionData.data) return prev;
+        const newUsers = subscriptionData.data.userAdded;
+
+        return {
+          ...prev,
+          users: [...prev.users, newUsers],
+        };
+      },
+    });
+  }, [subscribeToMore]);
+
+  const upgradeUser = (variables) => {
+    updateUser({
+      variables,
+      optimisticResponse: {
+        __typename: "Mutation",
+        updateUser: {
+          ...variables,
+          __typename: "User",
+        },
+      },
+    });
+  };
+
+  const loadMoreUsers = async (newPage) => {
+    await fetchMore({
       variables: {
-        skip: page * 10,
+        skip: newPage * 5,
       },
       updateQuery: (previousResult, { fetchMoreResult }) => {
         if (!fetchMoreResult) {
           return previousResult;
         }
-        return Object.assign({}, previousResult, {
-          users: [...previousResult.users, ...fetchMoreResult.users],
-        });
+
+        return {
+          users: fetchMoreResult.users,
+          _usersMeta: fetchMoreResult._usersMeta,
+        };
       },
     });
+    setPage(newPage);
   };
 
   if (error) return <ErrorMessage message="Error loading posts." />;
-  if (loading) return <div>Loading</div>;
-
-  const users = data?.users;
 
   return (
     <Container maxWidth="md">
@@ -117,34 +157,43 @@ const IndexPage = ({ router }) => {
         </Typography>
         <ProTip />
       </Box>
-      <MaterialTable
-        columns={[
-          { title: "Имя", field: "name" },
-          { title: "Почта", field: "email" },
-        ]}
-        data={users}
-        options={{
-          search: false,
-          pageSizeOptions: [5],
-          pageSize: 5
-        }}
-        onChangePage={loadMoreUsers}
-        title="Список пользователей"
-        editable={{
-          onRowAdd: async (variables) => {
-            await createUser({ variables });
-          },
-          onRowDelete: async (row) => {
-            await deleteUser({ variables: { id: row.id } });
-          },
-        }}
-        onRowClick={(event, rowData) =>
-          handleRowClick(event, rowData.id, router)
-        }
-      />
+      {loading ? (
+        <p>Загрузка данных пользователей</p>
+      ) : (
+        <MaterialTable
+          columns={[
+            { title: "Имя", field: "name" },
+            { title: "Почта", field: "email" },
+          ]}
+          data={data?.users}
+          options={{
+            search: false,
+            pageSizeOptions: [5],
+            pageSize: 5,
+          }}
+          page={page}
+          totalCount={data?._usersMeta}
+          onChangePage={loadMoreUsers}
+          title="Список пользователей"
+          editable={{
+            onRowAdd: async (variables) => {
+              await createUser({ variables });
+            },
+            onRowUpdate: async (variables) => {
+              await upgradeUser(variables);
+            },
+            onRowDelete: async (row) => {
+              await deleteUser({ variables: { id: row.id } });
+            },
+          }}
+          onRowClick={(event, rowData) =>
+            handleRowClick(event, rowData.id, router)
+          }
+        />
+      )}
       <Copyright className={classes.copyright} />
     </Container>
   );
 };
 
-export default withApollo({ ssr: true })(withRouter(IndexPage));
+export default withApollo({ ssr: false })(withRouter(IndexPage));
