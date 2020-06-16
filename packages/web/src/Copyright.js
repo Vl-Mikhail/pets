@@ -7,7 +7,7 @@ export default function Copyright({ className }) {
     <Typography variant="body2" color="textSecondary" align="center" className={className}>
       {'Copyright © '}
       <MuiLink color="inherit" href="https://material-ui.com/">
-        RUVOD
+        PETS
       </MuiLink>{' '}
       {new Date().getFullYear()}
       {'.'}
